@@ -1,0 +1,46 @@
+name: Validate Constellation
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC daily (= ~8pm HST)
+  workflow_dispatch:       # manual trigger from Quick Actions panel
+
+jobs:
+  validate:
+    name: Check mermicorn.repo.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all constellation repos
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPOS=(
+            mermicorn-grove mermicorn-token-saver mermicorn-graphic-ai
+            mermicorn-commerce-ai cherry-ravewear-studio cherry-travel-deal-lab
+            cherry-auto-matchmaker cherry-rift-lab cherry-operator-apprenticeship
+            supabase-showcase vercel-showcase mcp-hub
+            ai-agent-orchestrator ai-observability command-board
+          )
+          PASS=0
+          FAIL=0
+          MISSING=()
+          for repo in "${REPOS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              "https://raw.githubusercontent.com/cyber-lazer-mermicorn/${repo}/main/mermicorn.repo.yaml")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅  $repo"
+              ((PASS++))
+            else
+              echo "❌  $repo (HTTP $STATUS)"
+              MISSING+=("$repo")
+              ((FAIL++))
+            fi
+          done
+          echo ""
+          echo "Result: $PASS passed, $FAIL missing"
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "Missing manifest: ${MISSING[*]}"
+          fi
