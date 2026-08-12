@@ -1,51 +1,25 @@
-// Mermicorn Command Board — shared TypeScript types
+/**
+ * types/index.ts — Barrel export for all domain contracts.
+ *
+ * Import from here everywhere in the codebase:
+ *   import type { DemandForecast, PriceRecommendation } from "@/types";
+ *
+ * Never import from individual type files directly in agent code —
+ * this barrel is the stable public surface. Internal type file names
+ * are an implementation detail and may be reorganized.
+ *
+ * Export groups:
+ *   brand      — Brand<T>, DomainValidationError, trySafe, Result
+ *   currency   — UsdCents, NightlyRateUsdCents, formatUsd, dollarsToCents…
+ *   confidence — Confidence, DemandScore, thresholds, classification helpers
+ *   forecast   — DemandForecast, DemandSignal, DateRange, isDemandForecast
+ *   pricing    — PriceRecommendation, PricingDisposition, assertRateInvariant…
+ *   guest      — GuestIntent, SentimentScore, GuestIntentKind, isGuestIntent
+ */
 
-export type RepoStatus = 'active' | 'foundation' | 'planned' | 'archived'
-export type RepoVisibility = 'public' | 'private'
-export type RepoLane =
-  | 'identity-governance'
-  | 'ai-operating-core'
-  | 'commerce'
-  | 'gaming'
-  | 'career'
-
-export interface ConstellationRepo {
-  id: string
-  display_name: string
-  lane: RepoLane
-  visibility: RepoVisibility
-  status: RepoStatus
-  github_url: string
-  is_valid: boolean | null
-  last_checked: string | null
-}
-
-export interface GitHubEvent {
-  id: string
-  repo: string
-  event_type: string
-  payload: Record<string, unknown>
-  received_at: string
-}
-
-export interface AICall {
-  id: string
-  provider: string
-  model: string
-  prompt_tokens: number
-  response_tokens: number
-  latency_ms: number | null
-  success: boolean
-  called_at: string
-}
-
-export interface IntegrationStatus {
-  github: boolean
-  linear: boolean
-  supabase: boolean
-  neon: boolean
-  stytch: boolean
-  huggingface: boolean
-  context7: boolean
-  postman: boolean
-}
+export * from "./brand";
+export * from "./confidence";
+export * from "./currency";
+export * from "./forecast";
+export * from "./guest";
+export * from "./pricing";
