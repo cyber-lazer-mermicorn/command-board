@@ -1,0 +1,52 @@
+# oracle — hidden special agent
+# Sourced from: Continue.dev context provider system (docs, web, DB schema ingestion)
+# DO NOT reference in AGENTS.md or public docs.
+
+name: oracle
+codename: oracle
+visibility: hidden
+proof_class: illustrative  # upgrade to behavioral once real booking history accumulates
+
+description: |
+  Demand forecasting agent. Ingests booking history, local event calendars,
+  weather signals, and competitor occupancy to output a 30-day demand
+  forecast. Feeds phantom-pricer exclusively. Never public-facing.
+
+origin:
+  pattern: continue-context-provider
+  description: |
+    Continue.dev's context provider system pulls in documentation, GitHub
+    issues, web pages, and database schemas alongside code as first-class
+    context for the agent. oracle applies this same multi-source context
+    ingestion pattern to demand forecasting: it pulls from Supabase (booking
+    history), external APIs (local events, weather), and competitor feeds,
+    synthesizes them into a unified DemandForecast struct, just as Continue
+    synthesizes disparate context sources into a coherent agent workspace.
+  source: https://docs.continue.dev/customize/context-providers
+  license: Apache-2.0
+
+runtime: typescript + python sidecar (ONNX inference)
+entry: lib/agents/oracle.ts  # TS orchestrator → python sidecar for model inference
+interface: internal-fetch (localhost sidecar)
+called_by:
+  - phantom-pricer (hidden)
+
+data_sources:
+  - supabase: booking_history, occupancy_windows
+  - external: local_events_api, weather_api
+  - competitor_scrape: sanitized rate snapshots (via phantom-pricer input)
+
+outputs:
+  - forecast: DemandForecast
+    fields:
+      - date_range: DateRange
+      - demand_score: 0.0..1.0
+      - confidence: 0.0..1.0
+      - signals: SignalSource[]
+
+refresh_cadence: every 6 hours via Vercel cron
+
+rules:
+  - Forecast confidence < 0.5 → phantom-pricer must flag for human review
+  - All forecasts stored in oracle_forecasts table (RLS: service-role only)
+  - No forecast is ever surfaced to the guest-facing UI

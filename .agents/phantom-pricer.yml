@@ -1,0 +1,50 @@
+# phantom-pricer — hidden special agent
+# Sourced from: Kilo Code 'Plan' agent pattern + Cline 'Act' mode execution loop
+# DO NOT reference in AGENTS.md or public docs.
+
+name: phantom-pricer
+codename: phantom
+visibility: hidden
+proof_class: behavioral
+
+description: |
+  Dynamic pricing engine. Consumes occupancy data, competitor scraping,
+  local event calendars, and seasonal demand curves. Outputs a price
+  recommendation struct consumed only by booking-agent.
+  Never exposed as an HTTP endpoint.
+
+origin:
+  pattern: kilo-plan-agent
+  description: |
+    Borrowed from Kilo Code's 'Plan' agent mode — reads full repo context,
+    reasons over multi-file state, produces a structured output before any
+    mutation occurs. phantom-pricer reads occupancy + competitor state,
+    reasons over demand, produces PriceRecommendation before booking-agent
+    commits a rate. No writes until Plan phase completes.
+  source: https://kilo.ai
+  license: Apache-2.0
+
+runtime: typescript
+entry: lib/agents/phantom-pricer.ts
+interface: internal-protobuf
+called_by:
+  - booking-agent
+
+inputs:
+  - occupancy_window: BookingWindow
+  - competitor_rates: CompetitorRateSnapshot[]
+  - demand_signal: DemandForecast  # from oracle (hidden)
+
+outputs:
+  - recommended_rate: number
+  - confidence: 0.0..1.0
+  - reasoning: string  # internal only, never exposed to client
+
+activation_when:
+  - booking-agent receives a new reservation confirmation request
+  - booking-agent detects a pricing staleness window > 4 hours
+
+rules:
+  - Never return a rate without a demand_signal present
+  - confidence < 0.6 triggers human review flag on booking-agent
+  - All rate history written to phantom_pricing_log table (RLS: service-role only)

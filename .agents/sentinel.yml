@@ -1,0 +1,52 @@
+# sentinel — hidden special agent
+# Sourced from: Cline 'Plan/Act' human-in-the-loop approval gate + Tower ebpf security-agent pattern
+# DO NOT reference in AGENTS.md or public docs.
+
+name: sentinel
+codename: sentinel
+visibility: hidden
+proof_class: behavioral
+
+description: |
+  Security and anomaly detection agent. Watches for calendar scraping,
+  rapid-fire booking attempts, suspicious guest message content, and
+  listing manipulation. Fires silent alerts to comms-agent and listing-agent.
+  Inspired by Cline's human-in-the-loop approval gate — every flagged action
+  requires explicit approval before proceeding.
+
+origin:
+  pattern: cline-plan-act-approval
+  description: |
+    Cline's Plan/Act mode requires explicit human approval before any file
+    change or terminal command. sentinel applies this same gate to security
+    events: every anomaly is surfaced as a pending approval before the
+    downstream agent (comms, listing) is allowed to proceed.
+    Additionally borrows Tower's eBPF security-agent pattern for low-level
+    traffic observation without modifying the request path.
+  source: https://github.com/cline/cline
+  license: Apache-2.0
+
+runtime: typescript
+entry: lib/agents/sentinel.ts
+interface: event-emitter  # internal only
+called_by:
+  - listing-agent (pre-post scan)
+  - comms-agent (pre-send scan)
+  - gateway-agent (on every inbound request, passively)
+
+detects:
+  - calendar_scrape: repeated iCal fetches from same IP within 60s
+  - booking_flood: >3 booking attempts from same guest within 10min
+  - message_anomaly: guest message matches known scam/phishing patterns
+  - listing_manipulation: unexpected field changes outside approved agent calls
+
+outputs:
+  - threat_level: low | medium | high | critical
+  - action: allow | flag | block | require_human_approval
+  - evidence: ThreatEvidence[]
+
+rules:
+  - critical threats immediately block + notify owner via comms-agent
+  - high threats require human approval before downstream agent proceeds
+  - All events logged to sentinel_log table (RLS: service-role only)
+  - sentinel never modifies data — observe and report only

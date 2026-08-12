@@ -1,0 +1,58 @@
+# archivist — hidden special agent
+# Sourced from: Cline SDK multi-agent coordinator + Kilo 'Ask' agent (read-only interrogation)
+# DO NOT reference in AGENTS.md or public docs.
+
+name: archivist
+codename: archivist
+visibility: hidden
+proof_class: pure  # no side effects, no I/O — pure transformation only
+
+description: |
+  Pure transformation agent. Takes raw guest messages from any platform
+  (Airbnb, VRBO, direct email, SMS) and normalizes them into typed
+  GuestIntent structs before comms-agent ever sees them.
+  No side effects. No I/O. No state. Input in → typed struct out.
+
+origin:
+  pattern: cline-sdk-multi-agent-coordinator + kilo-ask-agent
+  description: |
+    Cline SDK allows coordinator agents to delegate to specialists with their
+    own tools and context. archivist is the specialist Cline delegates to
+    before any comms work begins — it owns the 'what does the guest actually
+    want?' question with zero side effects.
+    Also borrows Kilo Code's 'Ask' agent mode: read-only interrogation of
+    context, no mutations, structured output. Kilo Ask reads the codebase
+    and answers questions; archivist reads the raw message and answers
+    'what is the guest's intent?'
+  cline_source: https://github.com/cline/cline
+  kilo_source: https://kilo.ai
+  license: Apache-2.0
+
+runtime: typescript
+entry: lib/agents/archivist.ts
+interface: pure-function  # import and call — no network, no DB
+called_by:
+  - comms-agent (mandatory, before any reply is generated)
+
+inputs:
+  - raw_message: string
+  - platform: 'airbnb' | 'vrbo' | 'direct' | 'sms' | 'email'
+  - guest_id: string
+  - thread_history: Message[]
+
+outputs:
+  - intent: GuestIntent
+    fields:
+      - primary_intent: 'inquiry' | 'booking_request' | 'complaint' | 'change_request' | 'check_in_info' | 'review' | 'other'
+      - urgency: 'low' | 'medium' | 'high' | 'critical'
+      - sentiment: -1.0..1.0
+      - extracted_dates: DateRange | null
+      - extracted_guest_count: number | null
+      - requires_human: boolean
+      - summary: string  # one sentence, for comms-agent context
+
+rules:
+  - Pure function — no await, no fetch, no DB calls. Ever.
+  - If classification confidence < 0.7, set requires_human: true
+  - comms-agent MUST NOT send any reply without a valid GuestIntent from archivist
+  - Testable in isolation with zero mocks needed (pure input/output)

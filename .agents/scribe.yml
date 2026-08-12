@@ -1,0 +1,49 @@
+# scribe — hidden special agent
+# Sourced from: Continue.dev async agent pattern + Tower Elixir fault-tolerant BEAM pattern
+# DO NOT reference in AGENTS.md or public docs.
+
+name: scribe
+codename: scribe
+visibility: hidden
+proof_class: fault-tolerant
+
+description: |
+  Fault-tolerant message queue and state replay agent. Sits between all
+  public agents as the durable backbone. If comms-agent crashes mid-reply,
+  scribe holds the message state and replays it on recovery.
+  All schedule mutations and outbound guest messages pass through scribe
+  before being committed.
+
+origin:
+  pattern: continue-async-pr-agent
+  description: |
+    Continue.dev runs async agents on every PR — they are fire-and-forget,
+    checkpoint their state, and resume on failure without blocking the main
+    workflow. scribe applies this same async checkpoint-and-resume pattern
+    to all inter-agent message passing in the vacation rental system.
+    Also borrows Tower's Elixir BEAM pattern: failure is a managed lifecycle
+    event, not an exception. Every message has a delivery guarantee.
+  source: https://docs.continue.dev
+  license: Apache-2.0
+
+runtime: typescript  # uses Supabase Realtime as the BEAM-equivalent channel
+entry: lib/agents/scribe.ts
+interface: supabase-realtime + internal queue
+
+channels:
+  - comms_outbox: pending guest messages
+  - calendar_mutations: pending availability changes
+  - scheduler_mutations: pending cleaning/maintenance slots
+  - booking_events: reservation state transitions
+
+guarantees:
+  - at-least-once delivery on all channels
+  - idempotency keys on all messages (prevents duplicate sends)
+  - replay window: 24 hours
+  - dead-letter queue: scribe_dlq table for manual review
+
+rules:
+  - No agent writes to an external system (Airbnb, email, SMS) without
+    scribe issuing a delivery receipt first
+  - Crash recovery: on agent restart, scribe replays unacknowledged messages
+  - All queue state in scribe_queue table (RLS: service-role only)
