@@ -1,0 +1,54 @@
+# deploy-all.yml
+# Control plane workflow — triggers Vercel redeployment of any
+# constellation repo that has a Vercel project linked.
+# Full access via MERMICORN_PAT + VERCEL_TOKEN.
+
+name: Deploy Constellation
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Repo to redeploy (leave blank for command-board only)'
+        required: false
+        default: 'command-board'
+      environment:
+        description: 'Target environment'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    name: Trigger Vercel deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger deploy via Vercel API
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          TARGET_REPO: ${{ github.event.inputs.repo }}
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+        run: |
+          echo "Triggering $TARGET_ENV deploy for $TARGET_REPO"
+          curl -s -X POST "https://api.vercel.com/v13/deployments" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"name\": \"$TARGET_REPO\",
+              \"gitSource\": {
+                \"type\": \"github\",
+                \"org\": \"cyber-lazer-mermicorn\",
+                \"repo\": \"$TARGET_REPO\",
+                \"ref\": \"main\"
+              },
+              \"target\": \"$TARGET_ENV\"
+            }"

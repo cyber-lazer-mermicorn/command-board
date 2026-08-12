@@ -1,0 +1,73 @@
+# sync-constellation.yml
+# Control plane workflow — pushes mermicorn.repo.yaml to any constellation
+# repo that is missing it or has an outdated schema_version.
+# Full read/write across all org repos via MERMICORN_PAT.
+
+name: Sync Constellation Manifests
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Repo to sync (leave blank for all missing manifests)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run (true = report only, no commits)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    name: Sync manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Grove
+        uses: actions/checkout@v4
+        with:
+          repository: cyber-lazer-mermicorn/mermicorn-grove
+          token: ${{ secrets.MERMICORN_PAT }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Sync all repos
+        if: ${{ github.event.inputs.repo == '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.MERMICORN_PAT }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          python tools/validate_constellation.py \
+            --output sync-report.json \
+            --fix-missing
+
+      - name: Sync single repo
+        if: ${{ github.event.inputs.repo != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.MERMICORN_PAT }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          python tools/validate_constellation.py \
+            --repo "${{ github.event.inputs.repo }}" \
+            --output sync-report.json \
+            --fix-missing
+
+      - name: Upload sync report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-report
+          path: sync-report.json
+          retention-days: 30

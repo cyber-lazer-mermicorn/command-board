@@ -6,12 +6,23 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+  actions: write
+  issues: write
+  pull-requests: write
+  packages: write
+  deployments: write
+
 jobs:
   lint-typecheck:
     name: Lint + Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MERMICORN_PAT }}
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,6 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MERMICORN_PAT }}
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -50,13 +64,15 @@ jobs:
     name: Build Check
     runs-on: ubuntu-latest
     env:
-      # Stub env vars so Next.js build doesn't fail on missing keys
       NEXT_PUBLIC_APP_URL: https://command-board.vercel.app
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
       NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: placeholder
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MERMICORN_PAT }}
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
