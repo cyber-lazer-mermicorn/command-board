@@ -1,46 +1,60 @@
+# validate-constellation.yml
+# Canonical workflow from mermicorn-grove — validates mermicorn.repo.yaml
+# schema compliance across all constellation repos.
+# Runs nightly at 08:00 UTC and on workflow_dispatch (Quick Actions panel).
+
 name: Validate Constellation
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 06:00 UTC daily (= ~8pm HST)
-  workflow_dispatch:       # manual trigger from Quick Actions panel
+    # Nightly check — catches drift in other repos that don't push to Grove
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: 'Single repo to validate (leave blank for all)'
+        required: false
+        default: ''
 
 jobs:
   validate:
-    name: Check mermicorn.repo.yaml
+    name: Validate constellation repos
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    permissions:
+      contents: read
 
-      - name: Check all constellation repos
+    steps:
+      - name: Checkout Grove
+        uses: actions/checkout@v4
+        with:
+          repository: cyber-lazer-mermicorn/mermicorn-grove
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate all repos
+        if: ${{ github.event.inputs.repo == '' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPOS=(
-            mermicorn-grove mermicorn-token-saver mermicorn-graphic-ai
-            mermicorn-commerce-ai cherry-ravewear-studio cherry-travel-deal-lab
-            cherry-auto-matchmaker cherry-rift-lab cherry-operator-apprenticeship
-            supabase-showcase vercel-showcase mcp-hub
-            ai-agent-orchestrator ai-observability command-board
-          )
-          PASS=0
-          FAIL=0
-          MISSING=()
-          for repo in "${REPOS[@]}"; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              "https://raw.githubusercontent.com/cyber-lazer-mermicorn/${repo}/main/mermicorn.repo.yaml")
-            if [ "$STATUS" = "200" ]; then
-              echo "✅  $repo"
-              ((PASS++))
-            else
-              echo "❌  $repo (HTTP $STATUS)"
-              MISSING+=("$repo")
-              ((FAIL++))
-            fi
-          done
-          echo ""
-          echo "Result: $PASS passed, $FAIL missing"
-          if [ ${#MISSING[@]} -gt 0 ]; then
-            echo "Missing manifest: ${MISSING[*]}"
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/validate_constellation.py --output validation-report.json
+
+      - name: Validate single repo
+        if: ${{ github.event.inputs.repo != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python tools/validate_constellation.py --repo "${{ github.event.inputs.repo }}" --output validation-report.json
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: validation-report.json
+          retention-days: 30
