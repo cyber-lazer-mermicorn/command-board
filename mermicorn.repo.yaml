@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: command-board
+display_name: Mermicorn Command Board
+owner: Cherry
+lane: identity-governance
+visibility: public
+status: active
+purpose:
+  problem: >
+    Mermicorn constellation spans GitHub, Linear, Supabase, Vercel, Hugging Face,
+    Context7, Stytch, Neon, and Postman with no unified view. Cherry needs one control
+    plane to see status, trigger actions, and enforce constellation health.
+  audience:
+    - Cherry
+    - Future employers reviewing the portfolio
+    - Constellation agents
+integrations:
+  - github
+  - linear
+  - supabase
+  - vercel
+  - huggingface
+  - context7
+  - stytch
+  - neon
+  - postman

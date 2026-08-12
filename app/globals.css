@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --panel-bg: #0f172a;
+  --panel-border: #1e293b;
+  --panel-glow-green: rgba(74, 222, 128, 0.15);
+  --panel-glow-purple: rgba(232, 121, 249, 0.15);
+  --panel-glow-blue: rgba(96, 165, 250, 0.15);
+}
+
+.panel {
+  @apply bg-slate-900 border border-slate-800 rounded-xl p-5;
+}
+
+.panel-green {
+  @apply panel;
+  box-shadow: 0 0 24px var(--panel-glow-green);
+}
+
+.panel-purple {
+  @apply panel;
+  box-shadow: 0 0 24px var(--panel-glow-purple);
+}
+
+.panel-blue {
+  @apply panel;
+  box-shadow: 0 0 24px var(--panel-glow-blue);
+}
+
+.status-dot {
+  @apply inline-block w-2 h-2 rounded-full;
+}
+
+.status-green  { @apply status-dot bg-green-400; }
+.status-yellow { @apply status-dot bg-yellow-400; }
+.status-red    { @apply status-dot bg-red-500; }
+.status-gray   { @apply status-dot bg-gray-600; }
