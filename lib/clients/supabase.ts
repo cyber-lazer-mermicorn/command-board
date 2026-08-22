@@ -17,11 +17,11 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
-import type { Database } from "@/types/supabase";
+import type { CommandBoardDatabase } from "@/types/supabase-agent-audit";
 
 // ─── Server-side admin client (service role, bypasses RLS) ───────────────────
 
-export const supabaseAdmin = createClient<Database>(
+export const supabaseAdmin = createClient<CommandBoardDatabase>(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY,
   {
@@ -40,7 +40,7 @@ export const supabaseAdmin = createClient<Database>(
 
 // ─── Browser-safe anon client (respects RLS) ─────────────────────────────────
 
-export const supabaseClient = createClient<Database>(
+export const supabaseClient = createClient<CommandBoardDatabase>(
   env.NEXT_PUBLIC_SUPABASE_URL,
   env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   {

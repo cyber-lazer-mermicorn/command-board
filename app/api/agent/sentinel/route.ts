@@ -15,6 +15,7 @@ import { stytch } from "@/lib/clients/stytch";
 import { captureException, addBreadcrumb } from "@/lib/clients/sentry";
 import { StytchAuthError } from "@/lib/clients/stytch";
 import { env } from "@/lib/env";
+import { jsonOrFallback } from "@/lib/json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,8 +71,8 @@ export async function POST(req: NextRequest) {
           subject_id:   b.subject_id   as string | undefined,
           request_id:   b.request_id   as string | undefined,
           source_ip:    b.source_ip    as string | undefined,
-          evidence:     b.evidence     ?? [],
-          metadata:     b.metadata     ?? {},
+          evidence:     jsonOrFallback(b.evidence, []),
+          metadata:     jsonOrFallback(b.metadata, {}),
         })
         .select()
         .single()

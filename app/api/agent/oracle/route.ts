@@ -15,6 +15,7 @@ import { stytch } from "@/lib/clients/stytch";
 import { captureException, addBreadcrumb } from "@/lib/clients/sentry";
 import { StytchAuthError } from "@/lib/clients/stytch";
 import { env } from "@/lib/env";
+import { jsonOrFallback } from "@/lib/json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
           demand_score:      b.demand_score      as number,
           confidence:        b.confidence        as number,
           model_version:     b.model_version     as string,
-          signals:           b.signals           ?? [],
+          signals:           jsonOrFallback(b.signals, []),
         })
         .select()
         .single()

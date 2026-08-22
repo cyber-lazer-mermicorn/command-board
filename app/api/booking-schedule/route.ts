@@ -1,43 +1,75 @@
-/**
- * POST /api/booking-schedule
- * Generates the standard 4-message timed communication schedule
- * for a new booking and stores it in Supabase.
- *
- * Body: { bookingId, guestEmail, guestName, checkInDate, checkOutDate }
- * Returns: { schedule: ScheduledMessage[] }
- */
-
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { buildBookingMessageSchedule } from '@/lib/ai-comms';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase';
+import { stytch, StytchAuthError } from '@/lib/clients/stytch';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const bookingScheduleRequest = z.object({
+  bookingId: z.string().uuid(),
+  guestEmail: z.string().email(),
+  guestName: z.string().trim().min(1).max(200),
+  checkInDate: z.string().date(),
+  checkOutDate: z.string().date(),
+}).superRefine(({ checkInDate, checkOutDate }, context) => {
+  if (checkOutDate <= checkInDate) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'checkOutDate must be after checkInDate',
+      path: ['checkOutDate'],
+    });
+  }
+});
 
-export async function POST(req: NextRequest) {
+function bearerToken(request: NextRequest): string | null {
+  const value = request.headers.get('authorization');
+  if (!value?.startsWith('Bearer ')) return null;
+  const token = value.slice('Bearer '.length).trim();
+  return token || null;
+}
+
+export async function POST(request: NextRequest) {
+  const token = bearerToken(request);
+  if (!token) {
+    return NextResponse.json({ error: 'Authentication is required' }, { status: 401 });
+  }
+
   try {
-    const { bookingId, guestEmail, guestName, checkInDate, checkOutDate } = await req.json();
+    await stytch.authenticateSession(token);
+  } catch (error) {
+    if (error instanceof StytchAuthError) {
+      return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Authentication service unavailable' }, { status: 503 });
+  }
 
+  let input: z.infer<typeof bookingScheduleRequest>;
+  try {
+    input = bookingScheduleRequest.parse(await request.json());
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid booking schedule request', details: error.flatten() },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({ error: 'Invalid JSON request body' }, { status: 400 });
+  }
+
+  try {
     const schedule = buildBookingMessageSchedule(
-      bookingId,
-      guestEmail,
-      guestName,
-      checkInDate,
-      checkOutDate
+      input.bookingId,
+      input.guestEmail,
+      input.guestName,
+      input.checkInDate,
+      input.checkOutDate
     );
 
-    // Persist schedule to Supabase for the cron job to process
-    const { error } = await supabase
-      .from('scheduled_messages')
-      .insert(schedule);
-
+    const { error } = await getSupabaseAdmin().from('scheduled_messages').insert(schedule);
     if (error) throw new Error(error.message);
 
     return NextResponse.json({ schedule }, { status: 201 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error) {
+    console.error('booking schedule creation failed', error);
+    return NextResponse.json({ error: 'Unable to create booking schedule' }, { status: 500 });
   }
 }

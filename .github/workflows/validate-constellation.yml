@@ -1,13 +1,12 @@
-# validate-constellation.yml
 # Canonical workflow from mermicorn-grove — validates mermicorn.repo.yaml
-# schema compliance across ALL constellation repos (public + private).
-# MERMICORN_PAT gives full org read/write — command-board is the control plane.
+# schema compliance across the configured Constellation repositories.
+# MERMICORN_PAT must be a fine-grained token limited to the required repositories.
 
 name: Validate Constellation
 
 on:
   schedule:
-    - cron: '0 8 * * *'   # Nightly 08:00 UTC
+    - cron: '0 8 * * *'
   workflow_dispatch:
     inputs:
       repo:
@@ -16,22 +15,30 @@ on:
         default: ''
 
 permissions:
-  contents: write
-  actions: write
+  contents: read
   issues: write
-  pull-requests: write
 
 jobs:
   validate:
     name: Validate constellation repos
     runs-on: ubuntu-latest
+    env:
+      MERMICORN_PAT: ${{ secrets.MERMICORN_PAT }}
 
     steps:
+      - name: Verify Constellation credential
+        shell: bash
+        run: |
+          if [ -z "$MERMICORN_PAT" ]; then
+            echo "::error::MERMICORN_PAT is required. Configure a fine-grained token with read access to each validated repository and issue-write access to command-board."
+            exit 1
+          fi
+
       - name: Checkout Grove (validator + schemas)
         uses: actions/checkout@v4
         with:
           repository: cyber-lazer-mermicorn/mermicorn-grove
-          token: ${{ secrets.MERMICORN_PAT }}
+          token: ${{ env.MERMICORN_PAT }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -46,13 +53,13 @@ jobs:
       - name: Validate all repos
         if: ${{ github.event.inputs.repo == '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.MERMICORN_PAT }}
+          GITHUB_TOKEN: ${{ env.MERMICORN_PAT }}
         run: python tools/validate_constellation.py --output validation-report.json
 
       - name: Validate single repo
         if: ${{ github.event.inputs.repo != '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.MERMICORN_PAT }}
+          GITHUB_TOKEN: ${{ env.MERMICORN_PAT }}
         run: python tools/validate_constellation.py --repo "${{ github.event.inputs.repo }}" --output validation-report.json
 
       - name: Upload validation report
@@ -64,12 +71,12 @@ jobs:
           retention-days: 30
 
       - name: Post failure summary to command-board issue
-        if: failure()
+        if: ${{ failure() && env.MERMICORN_PAT != '' }}
         env:
-          GH_TOKEN: ${{ secrets.MERMICORN_PAT }}
+          GH_TOKEN: ${{ env.MERMICORN_PAT }}
         run: |
           gh issue create \
             --repo cyber-lazer-mermicorn/command-board \
             --title "[Constellation] Validation failed $(date -u +%Y-%m-%d)" \
-            --body "Nightly validation detected schema drift. Check the [validation report artifact](https://github.com/cyber-lazer-mermicorn/command-board/actions) for details." \
+            --body "Nightly validation detected schema drift. Check the validation report artifact in this workflow run." \
             --label "constellation,automated"

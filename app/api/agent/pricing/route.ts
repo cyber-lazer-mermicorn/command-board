@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, assertSupabaseSuccess } from "@/lib/clients/supabase";
 import { captureException, addBreadcrumb } from "@/lib/clients/sentry";
 import { env } from "@/lib/env";
+import { jsonOrFallback } from "@/lib/json";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
           disposition:                    b.disposition                    as string,
           strategy:                       b.strategy                       as string,
           model_version:                  b.model_version                  as string,
-          rationale:                      b.rationale                      ?? [],
+          rationale:                      jsonOrFallback(b.rationale, []),
         })
         .select()
         .single()

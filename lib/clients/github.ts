@@ -71,7 +71,7 @@ export const github = {
       fullName: r.full_name,
       private: r.private,
       description: r.description ?? null,
-      defaultBranch: r.default_branch,
+      defaultBranch: r.default_branch ?? 'main',
       pushedAt: r.pushed_at ?? null,
       topics: r.topics ?? [],
     }));
