@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { Route } from 'next'
 
 export default function Home() {
   return (
@@ -14,16 +15,16 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 text-left">
-          {[
+          {([
             { href: '/dashboard', label: '🌿 Constellation Health', color: 'border-green-800 hover:border-green-500' },
             { href: '/dashboard/linear', label: '📋 Linear Status', color: 'border-purple-800 hover:border-purple-500' },
             { href: '/dashboard/ci', label: '🚀 CI / Deployments', color: 'border-blue-800 hover:border-blue-500' },
             { href: '/dashboard/observability', label: '🧠 AI Observability', color: 'border-cyan-800 hover:border-cyan-500' },
             { href: '/dashboard/actions', label: '⚡ Quick Actions', color: 'border-yellow-800 hover:border-yellow-500' },
-          ].map(({ href, label, color }) => (
+          ] as const).map(({ href, label, color }) => (
             <Link
               key={href}
-              href={href}
+              href={href as Route}
               className={`panel border-2 ${color} transition-all duration-200 hover:bg-slate-800 block`}
             >
               <span className="text-gray-200 font-medium">{label}</span>

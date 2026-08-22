@@ -57,6 +57,14 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
       NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+      STYTCH_PROJECT_ID: placeholder
+      STYTCH_SECRET: placeholder
+      STYTCH_PROJECT_ENV: test
+      VERCEL_TOKEN: placeholder
+      MERMICORN_PAT: placeholder
+      HUGGINGFACE_API_KEY: placeholder
+      AGENT_API_SECRET: placeholder
     steps:
       - uses: actions/checkout@v4
 

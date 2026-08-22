@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   experimental: {
     typedRoutes: true,
   },
@@ -10,6 +9,6 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'huggingface.co' },
     ],
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;
