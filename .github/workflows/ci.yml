@@ -7,12 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
-  actions: write
-  issues: write
-  pull-requests: write
-  packages: write
-  deployments: write
+  contents: read
 
 jobs:
   lint-typecheck:
@@ -20,14 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.MERMICORN_PAT }}
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -44,14 +36,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.MERMICORN_PAT }}
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -70,14 +59,11 @@ jobs:
       NEXT_PUBLIC_STYTCH_PUBLIC_TOKEN: placeholder
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.MERMICORN_PAT }}
-          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
