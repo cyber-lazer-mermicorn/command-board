@@ -1,63 +1,77 @@
 /**
  * GET /api/deployments
- *
- * Returns recent Vercel deployments for the constellation dashboard.
- *
- * Auth: Stytch session token via Authorization: Bearer <session_token>
- * Scope: read-only, server-side Vercel API call
+ * Lists recent Vercel deployments when VERCEL_TOKEN is set.
+ * Soft env: returns 503 with clear message instead of process crash.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { stytch } from "@/lib/clients/stytch";
-import { vercel } from "@/lib/clients/vercel";
-import { captureException, addBreadcrumb } from "@/lib/clients/sentry";
-import { StytchAuthError } from "@/lib/clients/stytch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function extractBearerToken(req: NextRequest): string | null {
-  const header = req.headers.get("authorization") ?? "";
-  if (!header.startsWith("Bearer ")) return null;
-  return header.slice(7).trim() || null;
-}
+type VercelDeployment = {
+  uid: string;
+  name: string;
+  url: string;
+  state: string;
+  created: number;
+  ready?: number;
+  target?: string | null;
+};
 
 export async function GET(req: NextRequest) {
-  const token = extractBearerToken(req);
+  const token = process.env.VERCEL_TOKEN?.trim();
   if (!token) {
     return NextResponse.json(
-      { error: "Missing Authorization header" },
-      { status: 401 }
+      { error: "VERCEL_TOKEN not configured", deployments: [] },
+      { status: 503 }
     );
   }
 
-  // --- Auth ---
+  const limit = Math.min(
+    parseInt(req.nextUrl.searchParams.get("limit") ?? "20", 10) || 20,
+    100
+  );
+
+  const params = new URLSearchParams({ limit: String(limit) });
+  const teamId = process.env.VERCEL_ORG_ID?.trim();
+  if (teamId) params.set("teamId", teamId);
+  const projectId = process.env.VERCEL_PROJECT_ID?.trim();
+  if (projectId) params.set("projectId", projectId);
+
   try {
-    await stytch.authenticateSession(token);
-  } catch (err) {
-    if (err instanceof StytchAuthError) {
+    const res = await fetch(
+      `https://api.vercel.com/v6/deployments?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "mermicorn-command-board",
+        },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) {
       return NextResponse.json(
-        { error: "Invalid or expired session" },
-        { status: 401 }
+        { error: `Vercel API ${res.status}`, deployments: [] },
+        { status: 502 }
       );
     }
-    captureException(err, { tags: { route: "deployments" } });
-    return NextResponse.json({ error: "Authentication error" }, { status: 500 });
-  }
-
-  // --- Fetch ---
-  addBreadcrumb("deployments", "Fetching Vercel deployments");
-  try {
-    const limit = Math.min(
-      parseInt(req.nextUrl.searchParams.get("limit") ?? "20", 10),
-      100
+    const data = await res.json();
+    const deployments: VercelDeployment[] = (data.deployments || []).map(
+      (d: VercelDeployment) => ({
+        uid: d.uid,
+        name: d.name,
+        url: d.url,
+        state: d.state,
+        created: d.created,
+        ready: d.ready,
+        target: d.target,
+      })
     );
-    const deployments = await vercel.listDeployments(limit);
     return NextResponse.json({ deployments });
   } catch (err) {
-    captureException(err, { tags: { route: "deployments" } });
     return NextResponse.json(
-      { error: "Failed to fetch deployments" },
+      { error: String(err), deployments: [] },
       { status: 502 }
     );
   }
