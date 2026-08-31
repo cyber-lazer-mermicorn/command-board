@@ -8,11 +8,11 @@ export const runtime = 'edge'
 const ORG = 'cyber-lazer-mermicorn'
 
 const REPOS = [
-  'mermicorn-grove', 'mermicorn-token-saver', 'mermicorn-graphic-ai',
-  'mermicorn-commerce-ai', 'cherry-ravewear-studio', 'cherry-travel-deal-lab',
-  'cherry-auto-matchmaker', 'cherry-rift-lab', 'cherry-operator-apprenticeship',
-  'supabase-showcase', 'vercel-showcase', 'mcp-hub',
-  'ai-agent-orchestrator', 'ai-observability', 'command-board',
+  'mermicorn-grove', 'command-board', 'constellation-map', 'tower-of-babel',
+  'mermicorn-graphic-ai', 'mermicorn-commerce-ai', 'mermicorn-mega-boot',
+  'cherry-ravewear-studio', 'cherry-travel-deal-lab', 'cherry-auto-matchmaker',
+  'cherry-numismatic-auction-lab', 'cherry-rift-lab', 'cherry-chance-game-lab',
+  'cherry-operator-apprenticeship', 'mcp-hub', 'ai-observability', 'vercel-showcase',
 ]
 
 export async function GET(req: NextRequest) {
@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // MERMICORN_PAT gives read access to all org repos, public + private
   const token = process.env.MERMICORN_PAT
   if (!token) {
     return NextResponse.json({ error: 'MERMICORN_PAT not configured' }, { status: 500 })
@@ -45,8 +44,6 @@ export async function GET(req: NextRequest) {
 
   const validCount  = Object.values(results).filter(r => r.valid).length
   const missingRepos = Object.entries(results).filter(([, r]) => !r.valid).map(([name]) => name)
-
-  // TODO: upsert into Supabase constellation_repos once schema is live
 
   return NextResponse.json({
     checked_at: new Date().toISOString(),
