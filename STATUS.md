@@ -2,37 +2,64 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Scaffolded — active build |
-| **Last Updated** | 2026-08-11 |
-| **Phase** | Layer 1: Foundation |
+| **Status** | Active build — runnable Next.js surface |
+| **Last Updated** | 2026-08-31 |
+| **Phase** | Foundation present; panels and auth still expanding |
 
-## Build Layers
+## What is real in the repo today
 
-### Layer 1 — Foundation (in progress)
-- [ ] Next.js 14 App Router setup
-- [ ] Stytch passwordless auth
-- [ ] Supabase `mermicorn-core` schema
-- [ ] Neon edge Postgres connection
-- [ ] Vercel deployment pipeline
+| Area | Present |
+|------|--------|
+| Next.js App Router | Yes (`app/`, `layout.tsx`, `page.tsx`) |
+| Dashboard route | Yes (`app/dashboard/page.tsx`) |
+| Health API | Yes (`app/api/health/route.ts`) |
+| GitHub webhook | Yes (`app/api/github/webhook/route.ts`) |
+| Deployments API | Yes (`app/api/deployments/route.ts`) |
+| Constellation cron | Yes (`app/api/cron/constellation-check/route.ts`) |
+| Agent routes | Yes (oracle, pricing, sentinel under `app/api/agent/`) |
+| Booking / guest | Yes (`booking-schedule`, `guest-message`) |
+| Components / lib / types | Yes |
+| Vercel config | Yes (`vercel.json`) |
+| Env template | Yes (`.env.example`) |
 
-### Layer 2 — Integrations (planned)
-- [ ] GitHub webhook receiver
-- [ ] Linear API integration
-- [ ] Postman collection runner
-- [ ] Vercel deployment status feed
+## Build layers (honest)
 
-### Layer 3 — Intelligence (planned)
-- [ ] Hugging Face Inference API
+### Layer 1 — Foundation
+- [x] Next.js App Router project structure
+- [x] Core API routes (health, github webhook, deployments, cron)
+- [x] Dashboard page shell
+- [ ] Stytch passwordless auth fully wired end-to-end
+- [ ] Supabase `mermicorn-core` schema fully applied in production
+- [ ] Neon edge Postgres connection verified in prod
+- [ ] Production env complete on Vercel
+
+### Layer 2 — Integrations
+- [x] GitHub webhook receiver route
+- [ ] Linear API integration complete
+- [ ] Postman collection runner in UI
+- [ ] Live Vercel deployment status feed in UI
+
+### Layer 3 — Intelligence
+- [x] Agent route surfaces (oracle / pricing / sentinel)
+- [ ] Hugging Face Inference fully productized in panels
 - [ ] Context7 doc lookup
 - [ ] ai-observability telemetry feed
 - [ ] AI cost + latency dashboard
 
-## Dashboard Panels
+## Dashboard panels
 
-| Panel | Status |
-|-------|--------|
-| Constellation Health | Planned |
-| Linear Status | Planned |
-| CI / Deployments | Planned |
-| AI Observability | Planned |
-| Quick Actions | Planned |
+| Panel | Code | Live data |
+|-------|------|-----------|
+| Constellation Health | Partial (cron + APIs) | Expanding |
+| Linear Status | Planned | No |
+| CI / Deployments | API present | Expanding |
+| AI Observability | Agent routes present | Expanding |
+| Quick Actions | Partial | Expanding |
+
+## Priority next (code)
+
+1. Finish auth gate so dashboard is protected in production.
+2. Wire one panel end-to-end with real live data (constellation or deployments).
+3. Keep `/api/health` truthful about dependency readiness.
+
+See [README.md](README.md) for stack and quick start.
