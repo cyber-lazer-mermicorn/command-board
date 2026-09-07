@@ -2,11 +2,17 @@
 
 import { useState, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Route } from "next";
 
 function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get("next") || "/dashboard";
+  const rawNext = search.get("next") || "/dashboard";
+  // Allow only same-origin relative paths (typedRoutes-safe)
+  const next: Route =
+    rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? (rawNext as Route)
+      : ("/dashboard" as Route);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
