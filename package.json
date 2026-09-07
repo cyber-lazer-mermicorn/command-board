@@ -11,25 +11,25 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.120.0",
+    "@anthropic-ai/sdk": "^0.123.0",
     "@huggingface/inference": "^2.6.0",
     "@linear/sdk": "^26.0.0",
-    "@neondatabase/serverless": "^0.9.0",
+    "@neondatabase/serverless": "^0.10.4",
     "@octokit/rest": "^20.0.0",
     "@octokit/webhooks": "^13.0.0",
-    "@sentry/nextjs": "^10.70.0",
+    "@sentry/nextjs": "^10.73.0",
     "@stytch/nextjs": "^3.0.0",
-    "@stytch/vanilla-js": "^0.11.4",
-    "@supabase/ssr": "^0.1.0",
+    "@stytch/vanilla-js": "^0.14.5",
+    "@supabase/ssr": "^0.12.6",
     "@supabase/supabase-js": "^2.39.0",
     "clsx": "^2.1.0",
-    "lucide-react": "^0.344.0",
-    "next": "14.2.5",
+    "lucide-react": "^0.577.0",
+    "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
     "swr": "^2.2.4",
     "tailwind-merge": "^2.2.0",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^20",
