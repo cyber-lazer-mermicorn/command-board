@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout Grove
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: cyber-lazer-mermicorn/mermicorn-grove
           token: ${{ secrets.MERMICORN_PAT }}
