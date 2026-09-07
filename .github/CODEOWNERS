@@ -1,0 +1,8 @@
+# Default owners
+*       @cyber-lazer-mermicorn
+
+# Sensitive surfaces
+/lib/                         @cyber-lazer-mermicorn
+/app/api/                     @cyber-lazer-mermicorn
+/middleware.ts                @cyber-lazer-mermicorn
+/.github/workflows/           @cyber-lazer-mermicorn
