@@ -1,102 +1,64 @@
 /**
- * Environment Validator
- *
- * Single source of truth for every env var the application reads.
- * Validated at module load time — if a required variable is absent
- * or malformed the process throws immediately rather than failing
- * silently on the first API call.
- *
- * Pattern:
- *   - Required server vars:  throw on missing
- *   - Optional server vars:  return undefined / typed default
- *   - Public vars (NEXT_PUBLIC_*): safe for browser bundles
- *
- * Import:
- *   import { env } from "@/lib/env";
+ * Environment access — soft by default so optional integrations do not crash the app.
+ * Required vars throw only when a feature that needs them is invoked via requireEnv().
  */
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value || value.trim() === "") {
-    throw new Error(
-      `[env] Missing required environment variable: ${name}\n` +
-        `  Add it to .env.local (development) or your Vercel project settings (production).`
-    );
-  }
-  return value.trim();
-}
-
 function optional(name: string, fallback?: string): string | undefined {
-  const value = process.env[name];
-  if (!value || value.trim() === "") return fallback;
-  return value.trim();
+  const value = process.env[name]
+  if (!value || value.trim() === '') return fallback
+  return value.trim()
 }
 
-function requiredUrl(name: string): string {
-  const value = required(name);
-  try {
-    new URL(value);
-  } catch {
+function present(name: string): boolean {
+  return Boolean(process.env[name]?.trim())
+}
+
+export function requireEnv(name: string): string {
+  const value = process.env[name]?.trim()
+  if (!value) {
     throw new Error(
-      `[env] Environment variable ${name} must be a valid URL. Got: "${value}"`
-    );
+      `[env] Missing required environment variable: ${name}. Add it to .env.local or Vercel.`
+    )
   }
-  return value;
+  return value
 }
-
-function requiredEnum<T extends string>(name: string, allowed: T[]): T {
-  const value = required(name) as T;
-  if (!allowed.includes(value)) {
-    throw new Error(
-      `[env] Environment variable ${name} must be one of: ${allowed.join(", ")}. Got: "${value}"`
-    );
-  }
-  return value;
-}
-
-// ---------------------------------------------------------------------------
-// Validated environment — every consumer uses this object, never
-// process.env directly.
-// ---------------------------------------------------------------------------
 
 export const env = {
-  // ── Node ──────────────────────────────────────────────────────────────────
-  NODE_ENV: (optional("NODE_ENV", "development") as
-    | "development"
-    | "test"
-    | "production"),
+  NODE_ENV: (optional('NODE_ENV', 'development') as 'development' | 'test' | 'production'),
 
-  // ── Supabase ──────────────────────────────────────────────────────────────
-  NEXT_PUBLIC_SUPABASE_URL: requiredUrl("NEXT_PUBLIC_SUPABASE_URL"),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-  SUPABASE_SERVICE_ROLE_KEY: required("SUPABASE_SERVICE_ROLE_KEY"),
+  // Public / common
+  NEXT_PUBLIC_SUPABASE_URL: optional('NEXT_PUBLIC_SUPABASE_URL'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optional('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+  SUPABASE_SERVICE_ROLE_KEY: optional('SUPABASE_SERVICE_ROLE_KEY'),
 
-  // ── Stytch ────────────────────────────────────────────────────────────────
-  STYTCH_PROJECT_ID: required("STYTCH_PROJECT_ID"),
-  STYTCH_SECRET: required("STYTCH_SECRET"),
-  STYTCH_PROJECT_ENV: requiredEnum("STYTCH_PROJECT_ENV", ["live", "test"]),
+  STYTCH_PROJECT_ID: optional('STYTCH_PROJECT_ID'),
+  STYTCH_SECRET: optional('STYTCH_SECRET'),
+  STYTCH_PROJECT_ENV: optional('STYTCH_PROJECT_ENV', 'test'),
 
-  // ── Vercel ────────────────────────────────────────────────────────────────
-  VERCEL_TOKEN: required("VERCEL_TOKEN"),
-  VERCEL_TEAM_ID: optional("VERCEL_TEAM_ID"),
+  VERCEL_TOKEN: optional('VERCEL_TOKEN'),
+  VERCEL_TEAM_ID: optional('VERCEL_TEAM_ID') ?? optional('VERCEL_ORG_ID'),
+  VERCEL_PROJECT_ID: optional('VERCEL_PROJECT_ID'),
 
-  // ── Sentry ────────────────────────────────────────────────────────────────
-  SENTRY_DSN: optional("SENTRY_DSN"),
-  NEXT_PUBLIC_SENTRY_DSN: optional("NEXT_PUBLIC_SENTRY_DSN"),
-  SENTRY_AUTH_TOKEN: optional("SENTRY_AUTH_TOKEN"), // CI only — source map upload
+  SENTRY_DSN: optional('SENTRY_DSN'),
+  NEXT_PUBLIC_SENTRY_DSN: optional('NEXT_PUBLIC_SENTRY_DSN'),
 
-  // ── GitHub ────────────────────────────────────────────────────────────────
-  MERMICORN_PAT: required("MERMICORN_PAT"),
+  MERMICORN_PAT: optional('MERMICORN_PAT') ?? optional('GITHUB_TOKEN'),
+  HUGGINGFACE_API_KEY: optional('HUGGINGFACE_API_KEY'),
+  LINEAR_API_KEY: optional('LINEAR_API_KEY'),
 
-  // ── Hugging Face ──────────────────────────────────────────────────────────
-  HUGGINGFACE_API_KEY: required("HUGGINGFACE_API_KEY"),
+  AGENT_API_SECRET: optional('AGENT_API_SECRET'),
+  COMMAND_BOARD_ACCESS_TOKEN: optional('COMMAND_BOARD_ACCESS_TOKEN'),
+  NEXT_PUBLIC_APP_URL: optional('NEXT_PUBLIC_APP_URL'),
 
-  // ── Internal ──────────────────────────────────────────────────────────────
-  /** Shared secret for server-to-server agent API calls (e.g. sentinel ingest). */
-  AGENT_API_SECRET: required("AGENT_API_SECRET"),
+  has: {
+    supabase: () =>
+      present('NEXT_PUBLIC_SUPABASE_URL') && present('SUPABASE_SERVICE_ROLE_KEY'),
+    stytch: () => present('STYTCH_PROJECT_ID') && present('STYTCH_SECRET'),
+    vercel: () => present('VERCEL_TOKEN'),
+    github: () => present('MERMICORN_PAT') || present('GITHUB_TOKEN'),
+    huggingface: () => present('HUGGINGFACE_API_KEY'),
+    linear: () => present('LINEAR_API_KEY'),
+  },
+} as const
 
-  /** Base URL of this deployment — used to build absolute callback URLs. */
-  NEXT_PUBLIC_APP_URL: requiredUrl("NEXT_PUBLIC_APP_URL"),
-} as const;
-
-export type Env = typeof env;
+export type Env = typeof env
