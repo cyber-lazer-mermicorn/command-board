@@ -35,7 +35,7 @@ jobs:
           fi
 
       - name: Checkout Grove (validator + schemas)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: cyber-lazer-mermicorn/mermicorn-grove
           token: ${{ env.MERMICORN_PAT }}
