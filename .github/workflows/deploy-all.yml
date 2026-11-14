@@ -21,12 +21,11 @@ on:
           - production
           - preview
 
-permissions:
-  contents: read
-  deployments: write
-
 jobs:
   deploy:
+    permissions:
+      contents: read
+      deployments: write
     name: Trigger Vercel deploy
     runs-on: ubuntu-latest
 
